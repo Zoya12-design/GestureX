@@ -14,14 +14,23 @@ TARGET = 300  # har gesture ke itne samples
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "landmarks_data"
 MODEL = DATA_DIR / "hand_landmarker.task"
-OUT = DATA_DIR / "landmarks.csv"
 DATA_DIR.mkdir(exist_ok=True)
 
 CONNECTIONS = [(0, 1), (1, 2), (2, 3), (3, 4), (0, 5), (5, 6), (6, 7), (7, 8),
                (5, 9), (9, 10), (10, 11), (11, 12), (9, 13), (13, 14),
                (14, 15), (15, 16), (13, 17), (17, 18), (18, 19), (19, 20), (0, 17)]
 
-person = input("Apna naam likho (e.g. zoya): ").strip().lower()
+person = input("Apna naam likho (e.g. zoya): ").strip().lower().replace(" ", "_")
+OUT = DATA_DIR / f"landmarks_{person}.csv"
+
+# pehle se maujood samples gino
+counts = {name: 0 for name in LABELS.values()}
+if OUT.exists():
+    with open(OUT, newline="") as fr:
+        for row in csv.DictReader(fr):
+            if row["label"] in counts:
+                counts[row["label"]] += 1
+    print("Pehle se maujood samples:", counts)
 
 
 def normalize(landmarks):
@@ -58,7 +67,6 @@ writer = csv.writer(f)
 if new_file:
     writer.writerow([f"f{i}" for i in range(63)] + ["label", "person"])
 
-counts = {name: 0 for name in LABELS.values()}
 current = None
 recording = False
 
@@ -84,11 +92,12 @@ try:
                 counts[current] += 1
                 if counts[current] >= TARGET:
                     recording = False
+                    f.flush()
                     print(f"{current} complete!")
 
-        info = f"Gesture: {current} ({counts.get(current, 0)}/{TARGET}) REC: {recording}"
+        info = f"{person} | {current} ({counts.get(current, 0)}/{TARGET}) REC: {recording}"
         cv2.putText(frame, info, (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
-                    0.7, (0, 255, 0), 2)
+                    0.6, (0, 255, 0), 2)
         cv2.imshow("Collect landmarks", frame)
 
         k = cv2.waitKey(1) & 0xFF
@@ -96,11 +105,15 @@ try:
             current = LABELS[chr(k)]
             recording = False
         elif k == ord("r") and current:
-            recording = not recording
+            if counts[current] >= TARGET:
+                print(f"{current} pehle se {TARGET} ho chuka hai, dusra gesture chuno.")
+            else:
+                recording = not recording
         elif k == ord("q"):
             break
 finally:
     f.close()
     cap.release()
     cv2.destroyAllWindows()
-    print("Saved:", OUT, counts)
+    print("Saved:", OUT)
+    print(counts)
