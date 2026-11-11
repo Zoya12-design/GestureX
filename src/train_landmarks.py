@@ -25,7 +25,10 @@ RESULTS = ROOT / "results"
 RESULTS.mkdir(exist_ok=True)
 
 # ---- Data load: sab logon ki files jodo ----
-files = sorted(DATA_DIR.glob("landmarks_*.csv"))
+files = sorted(
+    f for f in DATA_DIR.glob("landmarks_*.csv")
+    if not f.stem.endswith("_backup")
+)
 if not files:
     raise SystemExit("landmarks_data mein koi landmarks_<naam>.csv nahi mili.")
 print("Files:", [f.name for f in files])
