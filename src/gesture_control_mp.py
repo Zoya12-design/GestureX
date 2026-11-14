@@ -2,7 +2,7 @@ import time
 from collections import Counter, deque
 from pathlib import Path
 
-import cv2
+import cv2  
 import joblib
 import mediapipe as mp
 import numpy as np
